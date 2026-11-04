@@ -1,0 +1,10 @@
+node_modules
+dist
+android
+release
+.data
+.git
+.env
+.env.*
+*.log
+capacitor-bootstrap

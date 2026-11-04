@@ -1,0 +1,465 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-100 text-navy-900 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  }
+
+  /* Tabular numbers everywhere money or counts are shown. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * A phone is held at arm's length in a shop, often by someone who is not
+   * looking closely. Body text starts a little larger there and tightens on a
+   * desktop, where the screen is closer and denser layouts are useful.
+   */
+  html {
+    font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  /*
+   * Anything tappable gets a real target on touch devices. Below this, buttons
+   * in dense rows end up smaller than a fingertip.
+   */
+  @media (pointer: coarse) {
+    button,
+    [role='button'],
+    [role='radio'],
+    [role='tab'],
+    a[href] {
+      min-height: 36px;
+    }
+  }
+
+  /* Long identifiers and addresses must wrap rather than widen the page. */
+  body {
+    overflow-wrap: break-word;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-shadow hover:shadow-card-hover;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-navy-800;
+  }
+
+  .hint {
+    @apply mt-1 text-xs text-slate-500;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-slate-200;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.4s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
+/* ------------------------------------------------------------ small screens */
+
+/*
+ * A phone is not a narrow desktop.
+ *
+ * On a wide screen the chrome does the work of separating things: a sidebar,
+ * generous margins, a lot of white. Strip those away and the same components
+ * read as a flat stack of white rectangles on grey — technically correct and
+ * visually dead. These rules give the phone layout back the hierarchy the
+ * sidebar was providing: more contrast between the page and its cards, rounder
+ * and slightly lifted surfaces, and targets a thumb can actually hit.
+ *
+ * Scoped to a media query rather than Tailwind's `max-sm:` so it applies to
+ * every card in the app without touching 20 files, and so the desktop layout
+ * is provably unchanged.
+ */
+@media (max-width: 639px) {
+  body {
+    /* A touch warmer than slate-100 so white cards lift off it rather than
+       blending into it on a cheap LCD in daylight. */
+    background-color: #eef1f6;
+  }
+
+  .card {
+    @apply rounded-2xl border-slate-200/80;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 4px 12px -6px rgb(15 23 42 / 0.12);
+  }
+
+  /* Edge-to-edge is the native idiom, and it buys ~24px of usable width on a
+     375px screen — which is the difference between a table fitting and not. */
+  main {
+    @apply px-2.5;
+  }
+
+  /* 44px is the smallest reliably tappable target; below that people miss and
+     blame the app. Applies to the controls, not to links inside prose. */
+  button:not(.no-touch-target),
+  select,
+  input[type='date'],
+  input[type='number'],
+  input[type='text'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='password'] {
+    min-height: 44px;
+  }
+
+  /* A sticky page header would eat a third of a phone screen, and the app bar
+     above it already says where you are. */
+  .app-header {
+    position: static;
+  }
+
+}
+
+/* --------------------------------------------------------------- motion */
+
+/* Every screen fades and lifts slightly on entry, so moving between pages
+   reads as one app rather than a series of hard cuts. Deliberately short —
+   anything slower gets in the way of a cashier working at speed.
+
+   Fill mode is `backwards`, never `both`. A finished animation with `both`
+   keeps its last keyframe applied, and `transform: none` computes to an
+   identity matrix rather than nothing — which still makes the element a
+   containing block for `position: fixed` descendants. That is what pushed the
+   phone's bottom navigation bar off the viewport and down to the end of the
+   page. `backwards` gives the same entry effect and leaves no transform
+   behind. */
+.page-enter {
+  animation: page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The zoom out of the sign-in screen and into the app. `backwards` for the
+   containing-block reason described above — this element wraps the whole app,
+   including the fixed bottom navigation. */
+.app-enter {
+  animation: app-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.welcome-pop {
+  animation: welcome-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes welcome-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------- splash screen
+ *
+ * Shown while the app decides whether anyone is signed in. That check is a
+ * round trip to the backend and can take a couple of seconds on a cold start,
+ * so the choice is between a blank screen and something that looks deliberate.
+ * The logo settles, holds, then the whole panel zooms away to reveal the app.
+ */
+.splash {
+  animation: splash-out 460ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes splash-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+    visibility: hidden;
+  }
+}
+
+.splash-mark {
+  animation: splash-mark 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes splash-mark {
+  from {
+    opacity: 0;
+    transform: scale(1.28);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.splash-word {
+  animation: splash-word 700ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
+}
+
+@keyframes splash-word {
+  from {
+    opacity: 0;
+    letter-spacing: 0.55em;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.3em;
+    transform: none;
+  }
+}
+
+/* A faint blueprint grid, so the panel is not a flat block of navy. */
+.splash-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse at center, #000 15%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 15%, transparent 72%);
+}
+
+/* The sign-in panel handing over to the app.
+ *
+ * Three seconds, spent deliberately: the mark resolves slowly out of a blur
+ * over the first second, holds long enough to be read, then zooms away as the
+ * app arrives behind it. The app has real work to do in that window — the first
+ * screen is fetching — so the pause is honest rather than decorative. */
+.handoff {
+  animation: handoff 3000ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes handoff {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+    filter: blur(10px);
+  }
+  32% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.01);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+    filter: blur(2px);
+  }
+}
+
+/* Held back for a moment, so a load that finishes quickly never shows a
+   spinner at all. Most page loads land inside this delay. */
+.animate-in-late {
+  animation: fade-in-late 200ms ease 260ms both;
+}
+
+@keyframes fade-in-late {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The activity bar in the header.
+ *
+ * It cannot show real progress — the backend does not report any — so it
+ * advances quickly at first and then creeps, which reads as "working" without
+ * ever pretending to know how far along it is. */
+.route-progress {
+  animation: route-progress 8s cubic-bezier(0.1, 0.6, 0.2, 1) forwards;
+}
+
+@keyframes route-progress {
+  0% {
+    transform: scaleX(0.02);
+  }
+  25% {
+    transform: scaleX(0.45);
+  }
+  60% {
+    transform: scaleX(0.75);
+  }
+  100% {
+    transform: scaleX(0.94);
+  }
+}
+
+/* A logo that lifts on hover, using the same 12% white plate as the mark. */
+.logo-highlight {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms ease;
+}
+.logo-highlight:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 10px 28px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* Respect a reduced-motion preference: keep the app usable, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .app-enter,
+  .welcome-pop,
+  .splash-mark,
+  .splash-word,
+  .handoff,
+  .animate-fade-in,
+  .animate-slide-up {
+    animation: none !important;
+  }
+  /* The splash still has to disappear, so it is shortened rather than removed. */
+  .splash {
+    animation-duration: 1ms !important;
+  }
+  .logo-highlight:hover {
+    transform: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* --------------------------------------------------------------- printing */
+
+@media print {
+  @page {
+    margin: 8mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print,
+  nav,
+  aside,
+  header.app-header,
+  .app-sidebar,
+  .app-mobile-nav {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-area {
+    position: absolute !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  .print-break {
+    break-after: page;
+  }
+
+  a[href]::after {
+    content: '';
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+/* Thermal receipt widths. Applied to the receipt sheet itself. */
+.receipt-58mm {
+  width: 58mm;
+}
+.receipt-80mm {
+  width: 80mm;
+}

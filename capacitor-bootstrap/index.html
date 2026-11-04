@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>N &amp; F Laundry POS</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --navy: #132131;
+        --navy-deep: #0b1522;
+        --brand: #3ba7fb;
+        --plate: rgba(255, 255, 255, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--navy);
+        color: #fff;
+        font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .card { width: 100%; max-width: 380px; }
+      .mark {
+        width: 64px; height: 64px; margin: 0 auto 20px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--plate);
+        border-radius: 18px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+      }
+      .mark img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+      h1 { margin: 0 0 4px; font-size: 19px; text-align: center; letter-spacing: -0.01em; }
+      .sub { margin: 0 0 24px; text-align: center; color: #94a3b8; font-size: 13px; }
+      label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+      input {
+        width: 100%; height: 50px; padding: 0 14px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 12px; color: #fff; font-size: 16px;
+      }
+      input:focus { outline: none; border-color: var(--brand); }
+      .hint { margin: 8px 0 0; font-size: 12px; color: #94a3b8; }
+      button {
+        width: 100%; height: 50px; margin-top: 18px;
+        background: var(--brand); color: #06263f;
+        border: 0; border-radius: 12px;
+        font-size: 16px; font-weight: 700;
+      }
+      button:disabled { opacity: 0.55; }
+      .msg { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 13px; display: none; }
+      .msg.err { display: block; background: rgba(239,68,68,0.14); color: #fca5a5; }
+      .msg.ok  { display: block; background: rgba(16,185,129,0.14); color: #6ee7b7; }
+      .spin {
+        display: inline-block; width: 14px; height: 14px; margin-right: 8px;
+        border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+        border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -2px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="mark"><img src="logo.png" alt="" onerror="this.style.display='none'" /></div>
+      <h1>N &amp; F Laundry POS</h1>
+      <p class="sub">Connect to the shop computer</p>
+
+      <label for="host">Server address</label>
+      <input
+        id="host"
+        type="text"
+        inputmode="url"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
+        placeholder="nf-laundry.onrender.com"
+      />
+      <p class="hint">
+        A hosted address like <code>nf-laundry.onrender.com</code> works from
+        anywhere, including mobile data. A shop-computer address like
+        <code>192.168.1.45:4000</code> works only on the same Wi-Fi.
+      </p>
+
+      <button id="go" type="button">Connect</button>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <script>
+      /*
+       * The APK does not hard-code the server address.
+       *
+       * A DHCP lease changes and the address moves with it, which would
+       * otherwise mean rebuilding and reinstalling the app. Instead the
+       * address is asked for once, remembered, and used to hand the WebView
+       * over to the real app.
+       *
+       * The redirect matters: once loaded from the server origin, the session
+       * cookie and every request behave exactly as they do in a desktop
+       * browser. There is no second auth path to maintain.
+       */
+      var KEY = 'nf.serverUrl';
+      var input = document.getElementById('host');
+      var button = document.getElementById('go');
+      var msg = document.getElementById('msg');
+
+      function show(kind, text) {
+        msg.className = 'msg ' + kind;
+        msg.innerHTML = text;
+      }
+
+      /**
+       * Accept what someone would actually type.
+       *
+       * A bare IP is a computer on the shop network, which is plain http on
+       * port 4000. A hostname is a hosted server, which is https on the default
+       * port. Guessing this correctly is the difference between "it works" and
+       * a connection error with no explanation.
+       */
+      function normalise(raw) {
+        var value = (raw || '').trim().replace(/\/+$/, '');
+        if (!value) return '';
+
+        if (/^https?:\/\//i.test(value)) return value;
+
+        var isIpOrLocalhost =
+          /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(value) || /^localhost(:\d+)?$/i.test(value);
+
+        if (isIpOrLocalhost) {
+          if (!/:\d+$/.test(value)) value += ':4000';
+          return 'http://' + value;
+        }
+        return 'https://' + value;
+      }
+
+      function go(url) {
+        window.location.replace(url);
+      }
+
+      /** Confirm the address really is the POS before committing to it. */
+      async function connect(url, remember) {
+        button.disabled = true;
+        show('ok', '<span class="spin"></span>Checking ' + url + '…');
+        try {
+          var controller = new AbortController();
+          var timer = setTimeout(function () { controller.abort(); }, 12000);
+          var res = await fetch(url + '/api/system/health', {
+            signal: controller.signal,
+            cache: 'no-store',
+          });
+          clearTimeout(timer);
+          if (!res.ok && res.status !== 503) throw new Error('HTTP ' + res.status);
+          var body = await res.json();
+          if (typeof body.provider !== 'string') throw new Error('not the POS server');
+          if (remember) localStorage.setItem(KEY, url);
+          show('ok', 'Connected. Opening…');
+          setTimeout(function () { go(url); }, 350);
+        } catch (error) {
+          button.disabled = false;
+          var reason =
+            error && error.name === 'AbortError'
+              ? 'No answer from ' + url + '.'
+              : 'Could not reach ' + url + '.';
+          show(
+            'err',
+            reason +
+              '<br><br>Check that the shop computer is on, that <code>npm start</code> is running, ' +
+              'and that this phone is on the same Wi-Fi.',
+          );
+        }
+      }
+
+      button.addEventListener('click', function () {
+        var url = normalise(input.value);
+        if (!url) {
+          show('err', 'Enter the server address first.');
+          return;
+        }
+        connect(url, true);
+      });
+
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') button.click();
+      });
+
+      // Straight through on subsequent launches, but fall back to this screen
+      // if the saved address has stopped answering.
+      var saved = localStorage.getItem(KEY);
+      if (saved) {
+        input.value = saved.replace(/^https?:\/\//i, '');
+        connect(saved, false);
+      } else {
+        input.focus();
+      }
+    </script>
+  </body>
+</html>

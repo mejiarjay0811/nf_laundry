@@ -1,0 +1,57 @@
+{
+  "name": "nf-laundry-pos-desktop",
+  "productName": "N & F Laundry POS",
+  "version": "1.0.0",
+  "description": "N & F Laundry POS - counter application",
+  "main": "main.cjs",
+  "author": "N & F Laundry",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "ph.nflaundry.pos",
+    "productName": "N & F Laundry POS",
+    "copyright": "N & F Laundry",
+    "directories": {
+      "output": "../dist/desktop",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main.cjs",
+      "icon.png",
+      "package.json",
+      {
+        "from": "../dist/client",
+        "to": "client",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "N & F Laundry POS",
+      "artifactName": "NF-Laundry-POS-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "NF-Laundry-POS-Portable-${version}.${ext}"
+    },
+    "compression": "maximum"
+  }
+}

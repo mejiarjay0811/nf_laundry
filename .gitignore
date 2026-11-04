@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+desktop/node_modules/
+
+# Build output
+dist/
+release/
+*.tsbuildinfo
+*.apk
+*.exe
+
+# --------------------------------------------------------------- secrets
+#
+# .env holds APPS_SCRIPT_TOKEN and SESSION_SECRET and must never be committed.
+# .env.production is NOT ignored on purpose: it holds only VITE_API_URL, the
+# deployment's public /exec address, which is baked into every released build
+# anyway and returns nothing until someone signs in. Vercel needs it at build
+# time, and keeping it here means a fresh clone deploys without extra setup.
+.env
+.env.local
+.env.*.local
+service-account.json
+*.pem
+*.p12
+*.keystore
+*.jks
+
+# Local development data
+.data/
+.cache/
+coverage/
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+
+# Editor and OS noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Scratch output from icon checks
+exe-icon-check.png
+apk-icon-check.png
