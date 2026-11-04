@@ -52,7 +52,7 @@ declare const ContentService: {
 };
 declare const Utilities: { getUuid: () => string };
 
-export const SCRIPT_VERSION = '11';
+export const SCRIPT_VERSION = '12';
 
 installSyncRuntime();
 

@@ -4,7 +4,7 @@
  * Built from appsscript-src/main.ts by scripts/build-appsscript.mjs.
  * Rebuild with:  npm run build:appsscript
  *
- * Built: 2026-11-04T19:00:12.780Z
+ * Built: 2026-11-04T21:43:34.223Z
  */
 
 (() => {
@@ -11813,7 +11813,7 @@
   }
 
   // appsscript-src/main.ts
-  var SCRIPT_VERSION = "11";
+  var SCRIPT_VERSION = "12";
   installSyncRuntime();
   var ATTEMPT_TTL_SECONDS = 20 * 60;
   setAttemptStore({
