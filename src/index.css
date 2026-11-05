@@ -5,6 +5,13 @@
 @layer base {
   :root {
     color-scheme: light;
+    /*
+     * Height of the phone's bottom navigation, including the home-indicator
+     * inset it pads itself with. Anything else that pins itself to the bottom
+     * of a phone screen — the till bar on the POS — sits on top of this rather
+     * than guessing, so the two can never overlap.
+     */
+    --app-nav-height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   }
 
   html {
@@ -14,6 +21,11 @@
   body {
     @apply bg-slate-100 text-navy-900 antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+    /* This is installed as an app, so it should not behave like a web page:
+       no grey flash on every tap, and no rubber-band bounce revealing the
+       browser's background when a list is scrolled past its end. */
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
 
   /* Tabular numbers everywhere money or counts are shown. */
@@ -146,17 +158,29 @@
     @apply px-2.5;
   }
 
-  /* 44px is the smallest reliably tappable target; below that people miss and
-     blame the app. Applies to the controls, not to links inside prose. */
-  button:not(.no-touch-target),
-  select,
-  input[type='date'],
-  input[type='number'],
-  input[type='text'],
-  input[type='search'],
-  input[type='tel'],
-  input[type='password'] {
+  /*
+   * Comfortable form controls — but NOT a blanket rule on every button.
+   *
+   * An earlier version applied a 44px floor to `button` itself. That is the
+   * right target size for a primary action and completely wrong for the small
+   * chips this app is full of: denomination keys, filter pills, table row
+   * actions. They all inflated and the screens looked clumsy. Components that
+   * need a large target now ask for one (`min-h-11`, `h-12`, `h-14`), and the
+   * rule here is limited to text entry, where a cramped field is genuinely
+   * hard to tap into.
+   *
+   * `:where()` keeps the specificity at zero so any utility class on the
+   * element still wins without needing `!important`.
+   */
+  :where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
     min-height: 44px;
+  }
+
+  /* iOS zooms the page in when a focused field is under 16px. The app's base
+     font is already 16px on phones; this stops a utility class from
+     accidentally dropping a field below it and jolting the layout. */
+  :where(input, select, textarea) {
+    font-size: max(16px, 1em);
   }
 
   /* A sticky page header would eat a third of a phone screen, and the app bar

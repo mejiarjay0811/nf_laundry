@@ -11,6 +11,7 @@ import {
   Shirt,
   Smartphone,
   Sparkles,
+  SplitSquareHorizontal,
   Tag,
   UserRound,
   Wind,
@@ -25,6 +26,7 @@ import type {
   TransactionDto,
 } from '@shared/types';
 import { Clock } from '@/components/Clock';
+import type { TenderMode } from '@/components/PaymentEntry';
 import { CustomerPicker, type NewCustomerDraft } from '@/components/CustomerPicker';
 import { QuickActions } from '@/components/QuickActions';
 import { OrNumberField } from '@/components/OrNumberField';
@@ -56,6 +58,13 @@ interface ServiceTile {
  * reach for "the blue one" without reading it. Saturated and flat on purpose:
  * this is a till, not a brochure.
  */
+/** How the money arrives. Split covers part cash, part GCash on one bill. */
+const TENDER_MODES: Array<{ id: TenderMode; label: string; icon: typeof Banknote }> = [
+  { id: 'Cash', label: 'Cash', icon: Banknote },
+  { id: 'GCash', label: 'GCash', icon: Smartphone },
+  { id: 'Split', label: 'Split', icon: SplitSquareHorizontal },
+];
+
 const SERVICE_TILES: ServiceTile[] = [
   { bg: 'bg-blue-600', hover: 'hover:bg-blue-700' },
   { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700' },
@@ -120,6 +129,15 @@ export default function Pos() {
   const [discount, setDiscount] = useState('');
   const [additionalCharge, setAdditionalCharge] = useState('');
   const [notes, setNotes] = useState('');
+  /**
+   * The method is chosen before the amount.
+   *
+   * With a Cash box and a GCash box both always present, an amount left in
+   * the one you are not using still counts — which recorded cash that never
+   * entered the drawer. Only the chosen method's fields exist, so the amounts
+   * below are gated on it rather than merely hidden.
+   */
+  const [tenderMode, setTenderMode] = useState<TenderMode>('Cash');
   const [cash, setCash] = useState('');
   const [gcash, setGcash] = useState('');
   const [gcashReference, setGcashReference] = useState('');
@@ -151,9 +169,23 @@ export default function Pos() {
     [services, serviceId],
   );
 
-  const cashC = toCentavos(cash || 0);
-  const gcashC = toCentavos(gcash || 0);
+  const cashC = tenderMode === 'GCash' ? 0 : toCentavos(cash || 0);
+  const gcashC = tenderMode === 'Cash' ? 0 : toCentavos(gcash || 0);
   const tenderedC = cashC + gcashC;
+
+  /** Carry the amount across when the method changes; never leave a copy. */
+  const changeTenderMode = (next: TenderMode) => {
+    const carried = toCentavos(cash || 0) + toCentavos(gcash || 0);
+    const amount = carried > 0 ? toPesos(carried).toFixed(2) : '';
+    if (next === 'Cash') {
+      setCash(amount);
+      setGcash('');
+    } else if (next === 'GCash') {
+      setGcash(amount);
+      setCash('');
+    }
+    setTenderMode(next);
+  };
 
   // Same arithmetic the server will apply, so what the cashier reads out is
   // what gets stored.
@@ -314,8 +346,10 @@ export default function Pos() {
             <Clock />
           </div>
         </div>
+        {/* Desktop only: on a phone the pinned till bar already carries the
+            total, and two copies on one screen is just noise. */}
         {money.total > 0 ? (
-          <span className="rounded-lg bg-navy-900 px-3 py-1.5 text-sm font-bold text-white tnum">
+          <span className="hidden rounded-lg bg-navy-900 px-3 py-1.5 text-sm font-bold text-white tnum md:inline-block">
             {peso(toPesos(money.total))}
           </span>
         ) : null}
@@ -588,63 +622,108 @@ export default function Pos() {
             </div>
 
             <div className="space-y-3 p-4">
-              {/* Cash and GCash are separate amounts, not a choice between
-                  them: ₱100 cash + ₱75 GCash on a ₱175 bill is routine. */}
-              <Input
-                id="pos-cash"
-                label="Cash"
-                inputMode="decimal"
-                value={cash}
-                onChange={(event) => setCash(event.target.value)}
-                leading={<Banknote className="h-4 w-4 text-emerald-600" aria-hidden="true" />}
-                placeholder="0.00"
-                disabled={mutation.isPending}
-                className="text-lg font-semibold tnum"
-              />
-
-              {/* Cash-denomination keys, like the note buttons on a till. */}
-              <div className="grid grid-cols-5 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCash(toPesos(Math.max(0, money.total - gcashC)).toFixed(2))}
-                  disabled={mutation.isPending || money.total <= 0}
-                  className="h-11 rounded-lg bg-navy-900 text-xs font-bold uppercase tracking-wide text-white transition-transform active:scale-95 disabled:opacity-40"
-                >
-                  Exact
-                </button>
-                {[100, 200, 500, 1000].map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setCash(String(amount))}
-                    disabled={mutation.isPending}
-                    className="h-11 rounded-lg bg-emerald-100 text-sm font-bold text-emerald-800 transition-transform hover:bg-emerald-200 active:scale-95 tnum"
-                  >
-                    {amount}
-                  </button>
-                ))}
+              <div
+                role="radiogroup"
+                aria-label="Mode of payment"
+                className="grid grid-cols-3 gap-1.5 rounded-xl bg-slate-100 p-1"
+              >
+                {TENDER_MODES.map((entry) => {
+                  const Icon = entry.icon;
+                  const active = tenderMode === entry.id;
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={mutation.isPending}
+                      onClick={() => changeTenderMode(entry.id)}
+                      className={cn(
+                        'flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-1 text-sm font-semibold transition-all',
+                        active
+                          ? 'bg-white text-navy-900 shadow-sm ring-1 ring-slate-200'
+                          : 'text-slate-600 active:bg-white/60',
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      {entry.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              <Input
-                id="pos-gcash"
-                label="GCash"
-                inputMode="decimal"
-                value={gcash}
-                onChange={(event) => setGcash(event.target.value)}
-                leading={<Smartphone className="h-4 w-4 text-brand-600" aria-hidden="true" />}
-                placeholder="0.00"
-                disabled={mutation.isPending}
-                className="text-lg font-semibold tnum"
-              />
+              {tenderMode !== 'GCash' ? (
+                <>
+                  <Input
+                    id="pos-cash"
+                    label={tenderMode === 'Split' ? 'Cash portion' : 'Cash received'}
+                    type="text"
+                    inputMode="decimal"
+                    value={cash}
+                    onChange={(event) => setCash(event.target.value)}
+                    leading={<Banknote className="h-4 w-4 text-emerald-600" aria-hidden="true" />}
+                    placeholder="0.00"
+                    disabled={mutation.isPending}
+                    className="h-12 text-lg font-bold tnum"
+                  />
 
-              {gcashC > 0 ? (
-                <Input
-                  label="GCash reference"
-                  value={gcashReference}
-                  onChange={(event) => setGcashReference(event.target.value)}
-                  hint="Optional"
-                  disabled={mutation.isPending}
-                />
+                  {/* Note keys, like the denomination buttons on a real till. */}
+                  <div className="grid grid-cols-5 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCash(toPesos(Math.max(0, money.total - gcashC)).toFixed(2))}
+                      disabled={mutation.isPending || money.total <= 0}
+                      className="h-11 rounded-lg bg-navy-900 text-xs font-bold uppercase tracking-wide text-white transition-transform active:scale-95 disabled:opacity-40"
+                    >
+                      Exact
+                    </button>
+                    {[100, 200, 500, 1000].map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setCash(String(amount))}
+                        disabled={mutation.isPending}
+                        className="h-11 rounded-lg bg-emerald-100 text-sm font-bold text-emerald-800 transition-transform active:scale-95 tnum"
+                      >
+                        {amount}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {tenderMode !== 'Cash' ? (
+                <>
+                  <Input
+                    id="pos-gcash"
+                    label={tenderMode === 'Split' ? 'GCash portion' : 'GCash amount'}
+                    type="text"
+                    inputMode="decimal"
+                    value={gcash}
+                    onChange={(event) => setGcash(event.target.value)}
+                    leading={<Smartphone className="h-4 w-4 text-brand-600" aria-hidden="true" />}
+                    placeholder="0.00"
+                    disabled={mutation.isPending}
+                    className="h-12 text-lg font-bold tnum"
+                  />
+                  {tenderMode === 'GCash' ? (
+                    <button
+                      type="button"
+                      onClick={() => setGcash(toPesos(money.total).toFixed(2))}
+                      disabled={mutation.isPending || money.total <= 0}
+                      className="h-11 w-full rounded-lg bg-navy-900 text-xs font-bold uppercase tracking-wide text-white transition-transform active:scale-95 disabled:opacity-40"
+                    >
+                      Exact {'·'} {peso(toPesos(money.total))}
+                    </button>
+                  ) : null}
+                  <Input
+                    label="GCash reference"
+                    value={gcashReference}
+                    onChange={(event) => setGcashReference(event.target.value)}
+                    hint="Optional"
+                    disabled={mutation.isPending}
+                  />
+                </>
               ) : null}
 
               {errors.payment ? (
@@ -688,13 +767,18 @@ export default function Pos() {
                 ) : null}
               </div>
 
-              {/* The one button that matters on this screen, sized to say so. */}
+              {/*
+                The one button that matters, sized to say so.
+                Hidden on a phone, where the same action is pinned to the
+                bottom of the screen instead — see the bar below. Two copies
+                stacked would be the same button twice in one scroll.
+              */}
               <button
                 type="button"
                 onClick={submit}
                 disabled={!service || mutation.isPending}
                 className={cn(
-                  'flex h-16 w-full items-center justify-center gap-2.5 rounded-xl',
+                  'hidden h-16 w-full items-center justify-center gap-2.5 rounded-xl md:flex',
                   'bg-emerald-600 text-lg font-bold text-white shadow-sm',
                   'transition-transform hover:bg-emerald-700 active:scale-[0.98]',
                   'disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500',
@@ -718,7 +802,56 @@ export default function Pos() {
               <QuickActions role="Admin" columns={2} />
             </section>
           ) : null}
+
+          {/* Room for the pinned till bar, so the last card is not stuck
+              underneath it at the end of the scroll. */}
+          <div aria-hidden="true" className="h-32 md:hidden" />
         </div>
+      </div>
+
+      {/*
+        The till bar.
+
+        On a phone the sale is a long form — receipt number, customer,
+        service, quantity, then payment — and the button that finishes it used
+        to sit at the very bottom of all of it. That meant scrolling past
+        everything you had just filled in to press the one key that matters,
+        on every single sale. Here it is pinned above the navigation instead,
+        carrying the running total, so it is reachable from any point in the
+        form and the cashier can always see what they are about to charge.
+      */}
+      <div
+        className="fixed inset-x-0 z-30 border-t border-slate-200 bg-white/95 px-3 pb-2.5 pt-2 shadow-[0_-4px_20px_-8px_rgb(15_23_42/0.3)] backdrop-blur md:hidden no-print"
+        /* Sits directly on top of the navigation rather than over it. */
+        style={{ bottom: 'var(--app-nav-height)' }}
+      >
+        <div className="mb-1.5 flex items-baseline justify-between px-1">
+          <span className="text-xs font-medium text-slate-500">
+            {service?.name ?? 'No service'} {'×'} {quantity}
+          </span>
+          <span className="text-lg font-bold text-navy-900 tnum">
+            {peso(toPesos(money.total))}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!service || mutation.isPending}
+          className={cn(
+            'flex h-14 w-full items-center justify-center gap-2 rounded-xl',
+            'bg-emerald-600 text-base font-bold text-white shadow-sm',
+            'transition-transform active:scale-[0.98]',
+            'disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500',
+          )}
+        >
+          <ReceiptIcon className="h-5 w-5" aria-hidden="true" />
+          {mutation.isPending ? 'Saving…' : 'Complete Sale'}
+          {money.change > 0 && !mutation.isPending ? (
+            <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-xs tnum">
+              change {peso(toPesos(money.change))}
+            </span>
+          ) : null}
+        </button>
       </div>
 
       <ReceiptModal
