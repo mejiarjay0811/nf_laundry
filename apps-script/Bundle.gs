@@ -4,7 +4,7 @@
  * Built from appsscript-src/main.ts by scripts/build-appsscript.mjs.
  * Rebuild with:  npm run build:appsscript
  *
- * Built: 2026-11-05T07:00:29.153Z
+ * Built: 2026-11-05T09:25:46.401Z
  */
 
 (() => {

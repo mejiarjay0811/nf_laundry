@@ -22,14 +22,14 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('mb-4 no-print sm:mb-5', className)}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className={cn('mb-3 no-print sm:mb-5', className)}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold leading-tight tracking-tight text-navy-900 sm:text-2xl">
+          <h1 className="text-xl font-bold leading-tight tracking-tight text-navy-900 sm:text-2xl">
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-1 text-sm leading-snug text-slate-600">{subtitle}</p>
+            <p className="mt-0.5 text-sm leading-snug text-slate-600 sm:mt-1">{subtitle}</p>
           ) : null}
         </div>
 

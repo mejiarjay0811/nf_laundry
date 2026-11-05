@@ -34,12 +34,20 @@
   }
 
   /*
-   * A phone is held at arm's length in a shop, often by someone who is not
-   * looking closely. Body text starts a little larger there and tightens on a
-   * desktop, where the screen is closer and denser layouts are useful.
+   * One type scale, and the phone is not the generous end of it.
+   *
+   * This used to run 16px on phones and 15px on desktop, reasoning that a
+   * phone is held at arm's length. Every Tailwind size is a rem, so the net
+   * effect was that the device with the LEAST room rendered everything ~7%
+   * larger than the device with the most — a desktop layout scaled up, which
+   * is exactly what it looked like. A shop app wants the opposite: more of
+   * the order visible at once, fewer thumb-drags per sale.
+   *
+   * 15px everywhere now. Density on a phone comes from tighter space, not
+   * smaller words, so the padding below shrinks while the type stays legible.
    */
   html {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   @media (min-width: 640px) {
@@ -173,14 +181,29 @@
    * element still wins without needing `!important`.
    */
   :where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
-    min-height: 44px;
+    min-height: 42px;
   }
 
-  /* iOS zooms the page in when a focused field is under 16px. The app's base
-     font is already 16px on phones; this stops a utility class from
-     accidentally dropping a field below it and jolting the layout. */
-  :where(input, select, textarea) {
-    font-size: max(16px, 1em);
+  /*
+   * iOS silently zooms the whole page in when you focus a field smaller than
+   * 16px, and does not zoom back out — the layout is left shifted sideways
+   * mid-sale. The app's type scale is 15px, so almost every field would
+   * trigger it.
+   *
+   * Deliberately NOT inside :where(): this has to beat Tailwind's `text-sm`
+   * on the element, which zero specificity cannot do.
+   *
+   * Keyed on width as well as pointer. `pointer: coarse` is the honest test
+   * but it is not reliably reported — a device emulator here answers "fine"
+   * with zero touch points — and a field that silently zooms is worse than
+   * one that is a pixel too big, so the width clause carries it.
+   */
+  @media (max-width: 639px), (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      font-size: 16px;
+    }
   }
 
   /* A sticky page header would eat a third of a phone screen, and the app bar

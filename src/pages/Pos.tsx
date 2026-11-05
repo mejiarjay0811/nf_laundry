@@ -99,9 +99,9 @@ function Section({
     // Deliberately NOT overflow-hidden: the address autocomplete inside this
     // card is absolutely positioned and was being clipped by it.
     <section className="card">
-      <header className="flex items-center justify-between gap-2 rounded-t-xl border-b border-slate-100 px-4 py-3">
-        <h2 className="flex items-center gap-2.5 text-sm font-semibold text-navy-900">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+      <header className="flex items-center justify-between gap-2 rounded-t-xl border-b border-slate-100 px-3 py-2 sm:px-4 sm:py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-navy-900">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-brand-700 sm:h-7 sm:w-7 sm:rounded-lg">
             {icon}
           </span>
           <span className="text-slate-400 tnum">{step}</span>
@@ -109,7 +109,7 @@ function Section({
         </h2>
         {action}
       </header>
-      <div className="p-4">{children}</div>
+      <div className="p-3 sm:p-4">{children}</div>
     </section>
   );
 }
@@ -355,7 +355,7 @@ export default function Pos() {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-2.5 sm:gap-3 lg:grid-cols-[1fr_380px]">
         <div className="space-y-3">
           <Section
             step={1}
@@ -552,7 +552,7 @@ export default function Pos() {
             </button>
 
             {showAdjustments ? (
-              <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 border-t border-slate-100 p-3 sm:grid-cols-2 sm:gap-3 sm:p-4">
                 <Input
                   label="Discount"
                   inputMode="decimal"
@@ -621,7 +621,7 @@ export default function Pos() {
               </div>
             </div>
 
-            <div className="space-y-3 p-4">
+            <div className="space-y-2.5 p-3 sm:space-y-3 sm:p-4">
               <div
                 role="radiogroup"
                 aria-label="Mode of payment"

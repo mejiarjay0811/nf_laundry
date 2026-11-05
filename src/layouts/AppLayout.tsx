@@ -158,7 +158,7 @@ export function AppLayout() {
           <RouteProgress />
         </header>
 
-        <main className="px-3 pb-24 pt-4 sm:px-5 sm:pb-8 lg:px-7">
+        <main className="px-3 pb-24 pt-3 sm:px-5 sm:pb-8 sm:pt-4 lg:px-7">
           {/* Keyed on the route so recovering is as simple as navigating away
               and back, rather than reloading the whole app. */}
           <ErrorBoundary key={location.pathname}>

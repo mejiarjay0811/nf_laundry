@@ -18,8 +18,11 @@ export function CardHeader({
 }) {
   return (
     <header
+      /* Tighter on a phone: this header repeats on every card, so a few
+         pixels here is a card and a half of extra content down the page. */
       className={cn(
-        'flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5 sm:px-5',
+        'flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 px-3 py-2.5',
+        'sm:gap-3 sm:px-5 sm:py-3.5',
         className,
       )}
     >
@@ -33,5 +36,5 @@ export function CardHeader({
 }
 
 export function CardBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('px-4 py-4 sm:px-5', className)}>{children}</div>;
+  return <div className={cn('px-3 py-3 sm:px-5 sm:py-4', className)}>{children}</div>;
 }
